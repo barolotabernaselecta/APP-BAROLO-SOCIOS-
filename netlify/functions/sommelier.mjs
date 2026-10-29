@@ -46,7 +46,8 @@ export default async (req) => {
 
   let r, data;
   try {
-    r = await fetch('https://api.anthropic.com/v1/messages', {
+    const base = (process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '');
+    r = await fetch(base + '/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
