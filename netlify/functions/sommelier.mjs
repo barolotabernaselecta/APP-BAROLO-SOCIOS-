@@ -52,7 +52,7 @@ export default async (req) => {
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
-        max_tokens: 2200,
+        max_tokens: 4096,
         messages: [{ role: 'user', content }],
       }),
     });
@@ -72,11 +72,12 @@ export default async (req) => {
 
   const text = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   const start = text.indexOf('{'), end = text.lastIndexOf('}');
-  try {
-    const wine = JSON.parse(text.slice(start, end + 1));
-    return json({ wine });
-  } catch {
-    return json({ error: 'parse' }, 502);
+  const raw = text.slice(start, end + 1);
+  const tries = [raw, raw.replace(/,\s*([}\]])/g, '$1'), raw.replace(/[\u201C\u201D]/g, '"').replace(/,\s*([}\]])/g, '$1')];
+  for (const t of tries) {
+    try { return json({ wine: JSON.parse(t) }); } catch {}
   }
+  console.error('parse error', data.stop_reason, text.slice(0, 300), text.slice(-300));
+  return json({ error: 'parse', stop: data.stop_reason }, 502);
 };
 
